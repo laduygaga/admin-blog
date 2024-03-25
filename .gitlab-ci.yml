@@ -1,0 +1,45 @@
+image: freecoder/golang-gitlabci:1.16
+
+default:
+  tags:
+    - ota
+
+stages:
+  - build
+  - deploy
+
+build_api:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: ['']
+  only:
+    - master
+    - develop
+  script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"docker.appota.com\":{\"auth\":\"$(echo -n gitlab-ci-token:$CI_BUILD_TOKEN | base64)\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination "$CI_REGISTRY_IMAGE/ota-blog-admin:${CI_COMMIT_REF_SLUG}_${CI_BUILD_REF:0:8}"
+
+deploy_dev:
+  stage: deploy
+  only:
+    - develop
+  script:
+    # - kubectl -n ota-network create secret docker-registry deploy-blog-admin --docker-server="$CI_REGISTRY" --docker-username="$CI_DEPLOY_USER" --docker-password="$CI_DEPLOY_PASSWORD" --dry-run -o yaml | kubectl apply --namespace=ota-network -f -
+    - api_tag="${CI_COMMIT_REF_SLUG}_${CI_BUILD_REF:0:8}"
+    - sed -e "s/<API_IMAGE_TAG>/$api_tag/" ./deploy.yml | kubectl apply --namespace=ota-network -f -
+  environment:
+    name: ota-blog-admin-dev
+
+deploy_prod:
+  stage: deploy
+  only:
+    - master
+  script:
+    - kubectl -n ota-network create secret docker-registry deploy-blog-admin --docker-server="$CI_REGISTRY" --docker-username="$CI_DEPLOY_USER" --docker-password="$CI_DEPLOY_PASSWORD" --dry-run -o yaml | kubectl apply --namespace=ota-network -f -
+    - api_tag="${CI_COMMIT_REF_SLUG}_${CI_BUILD_REF:0:8}"
+    - sed -e "s/<API_IMAGE_TAG>/$api_tag/" ./deploy.yml | kubectl apply --namespace=ota-network -f -
+  environment:
+    name: ota-blog-admin-prod
+

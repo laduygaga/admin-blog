@@ -1,0 +1,72 @@
+{{define "metatags"}}
+    <title>{{ .AppName }}{{ if .Title }} | {{ .Title }}{{ end }}</title>
+    <link rel="icon" href="{{file "favicon.png"}}">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    {{- if .Metatags.Description}}
+        <meta name="description" content="{{.Metatags.Description}}">
+    {{- end}}
+    {{- if .Metatags.Keywords}}
+        <meta name="keywords" content="{{.Metatags.Keywords | join ", "}}">
+    {{- end}}
+{{end}}
+
+{{define "css"}}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+{{end}}
+
+{{define "js"}}
+    <script src="https://unpkg.com/htmx.org@1.9.3"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="../../admin/static/ckeditor.js"></script>
+    <link href="../../admin/static/styles.css" rel="stylesheet" type="text/css" />
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{{end}}
+
+{{define "footer"}}
+    {{- if .CSRF}}
+        <script>
+            document.body.addEventListener('htmx:configRequest', function(evt)  {
+                if (evt.detail.verb !== "get") {
+                    evt.detail.parameters['csrf'] = '{{.CSRF}}';
+                }
+            })
+        </script>
+    {{end}}
+    <script>
+        document.body.addEventListener('htmx:beforeSwap', function(evt) {
+            if (evt.detail.xhr.status >= 400){
+                evt.detail.shouldSwap = true;
+                evt.detail.target = htmx.find("body");
+            }
+        });
+    </script>
+{{end}}
+
+{{define "daterangepicker"}}
+<script>
+    $(function() {
+        // Initialize date range picker
+        const dateRangePicker = $('input[name="daterange"]').daterangepicker({
+            opens: 'right'
+        });
+
+        // Listen for the apply.daterangepicker event and trigger the htmx request
+        dateRangePicker.on('apply.daterangepicker', function(ev, picker) {
+            const start = picker.startDate;
+            const end = picker.endDate;
+
+            // Manually set the input value with the formatted date range
+            $(this).val(start.format('MM/DD/YYYY') + ' - ' + end.format('MM/DD/YYYY'));
+
+            // Manually trigger the htmx request with the customized parameters
+            htmx.trigger($(this)[0], 'change');
+        });
+    });
+
+</script>
+{{end}}

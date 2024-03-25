@@ -1,0 +1,39 @@
+version: "3"
+
+services:
+  cache:
+    image: "redis:alpine"
+    container_name: admin-blog-redis-service
+    ports:
+      - "6379:6379"
+    networks:
+      - ota-network
+
+  db:
+    image: postgres:15-alpine
+    container_name: admin-blog-postgres-service
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=blog_admin
+    networks:
+      - ota-network
+
+  app:
+    build:
+      context: .
+    container_name: blog_admin_app
+    depends_on:
+      - cache
+      - db
+    networks:
+      - ota-network
+    ports:
+      - "5000:9090"
+    env_file:
+      - .env
+
+networks:
+  ota-network:
